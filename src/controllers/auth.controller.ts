@@ -13,9 +13,35 @@ export const loginSchema = z.object({
   rememberMe: z.boolean().optional(),
 });
 
+export const signupSchema = z.object({
+  name: z.string().min(2, 'Full name must be at least 2 characters'),
+  email: z.string().email('Please enter a valid email address'),
+  password: z.string().min(6, 'Password must be at least 6 characters'),
+  companyName: z.string().min(2, 'Company name is required').optional(),
+});
+
 export const AUTH_COOKIE_NAME = AuthCookie.NAME;
 
 export class AuthController {
+  static signup = asyncHandler(async (req: Request, res: Response): Promise<void> => {
+    const validatedInput = validateSchema(signupSchema, req.body);
+    const session = await authService.signup(validatedInput);
+
+    res.cookie(AUTH_COOKIE_NAME, session.token, {
+      httpOnly: true,
+      secure: env.NODE_ENV === 'production',
+      sameSite: env.NODE_ENV === 'production' ? 'none' : 'lax',
+      maxAge: 30 * 24 * 60 * 60 * 1000,
+      path: '/',
+    });
+
+    res.status(201).json({
+      success: true,
+      message: 'Account created successfully',
+      data: session,
+    });
+  });
+
   static login = asyncHandler(async (req: Request, res: Response): Promise<void> => {
     const validatedInput = validateSchema(loginSchema, req.body);
     const session = await authService.login(validatedInput);

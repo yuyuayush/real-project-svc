@@ -1,13 +1,54 @@
 import { userRepository } from '../repositories/user.repository.js';
-import { AuthSessionResponse, LoginInput, UserPublicProfile } from '../types/index.js';
-import { UnauthorizedError } from '../errors/app-error.js';
-import { generateSessionToken, verifyPassword } from '../utils/crypto.js';
+import { AuthSessionResponse, LoginInput, SignupInput, UserPublicProfile } from '../types/index.js';
+import { BadRequestError, UnauthorizedError } from '../errors/app-error.js';
+import { generateSessionToken, hashPassword, verifyPassword } from '../utils/crypto.js';
 import { logger } from '../config/logger.js';
 
 // Simple active token cache for session lookups
 const activeSessions = new Map<string, { userId: string; expiresAt: Date }>();
 
 export class AuthService {
+  async signup(input: SignupInput): Promise<AuthSessionResponse> {
+    const existing = await userRepository.findByEmail(input.email);
+    if (existing) {
+      throw new BadRequestError('An account with this email address already exists');
+    }
+
+    const passwordHash = hashPassword(input.password);
+    const newUser = await userRepository.create({
+      email: input.email.toLowerCase(),
+      name: input.name,
+      passwordHash,
+      role: 'admin',
+      companyName: input.companyName || 'Acme Corp',
+    });
+
+    const token = generateSessionToken(newUser.id);
+    const expiresAt = new Date(Date.now() + 30 * 24 * 60 * 60 * 1000);
+
+    activeSessions.set(token, {
+      userId: newUser.id,
+      expiresAt,
+    });
+
+    const userProfile: UserPublicProfile = {
+      id: newUser.id,
+      name: newUser.name,
+      email: newUser.email,
+      role: newUser.role,
+      companyName: newUser.companyName,
+      avatarUrl: newUser.avatarUrl,
+    };
+
+    logger.info({ userId: newUser.id, email: newUser.email }, 'User registered successfully');
+
+    return {
+      user: userProfile,
+      token,
+      expiresAt: expiresAt.toISOString(),
+    };
+  }
+
   async login(input: LoginInput): Promise<AuthSessionResponse> {
     const user = await userRepository.findByEmail(input.email);
 
