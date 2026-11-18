@@ -1,0 +1,50 @@
+services:
+  # ==============================================================
+  # Payment Gateway Backend API (Can be scaled to multiple instances)
+  # ==============================================================
+  payment-api:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    # Automatic restart policy: when an uncaughtException exits with code 1,
+    # Docker automatically re-spins the container immediately.
+    restart: always
+    environment:
+      - PORT=5000
+      - NODE_ENV=production
+      - APP_URL=http://localhost:5000
+      - CLIENT_URL=http://localhost:5000
+      - STRIPE_SECRET_KEY=${STRIPE_SECRET_KEY:-sk_test_placeholder}
+      - STRIPE_PUBLISHABLE_KEY=${STRIPE_PUBLISHABLE_KEY:-pk_test_placeholder}
+      - STRIPE_WEBHOOK_SECRET=${STRIPE_WEBHOOK_SECRET:-whsec_placeholder}
+      - STRIPE_CURRENCY=${STRIPE_CURRENCY:-usd}
+      - RESEND_API_KEY=${RESEND_API_KEY:-re_placeholder}
+      - EMAIL_FROM=${EMAIL_FROM:-Store Orders <onboarding@resend.dev>}
+      - SUPPORT_EMAIL=${SUPPORT_EMAIL:-support@example.com}
+      - STORE_NAME=${STORE_NAME:-PrimeStore Direct}
+      - MONGODB_URI=${MONGODB_URI:-mongodb://host.docker.internal:27017/payment-gateway}
+    extra_hosts:
+      - "host.docker.internal:host-gateway"
+    networks:
+      - payment-net
+
+  # ==============================================================
+  # Nginx Reverse Proxy / Load Balancer
+  # Distributes traffic across all scaled payment-api container instances
+  # ==============================================================
+  load-balancer:
+    image: nginx:alpine
+    container_name: payment-load-balancer
+    restart: always
+    ports:
+      - "5000:80"
+    volumes:
+      - ./nginx/nginx.conf:/etc/nginx/nginx.conf:ro
+    depends_on:
+      - payment-api
+    networks:
+      - payment-net
+
+networks:
+  payment-net:
+    driver: bridge
