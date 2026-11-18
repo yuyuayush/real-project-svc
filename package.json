@@ -8,6 +8,7 @@
     "dev": "tsx watch src/server.ts",
     "build": "rimraf dist && tsc",
     "start": "node dist/server.js",
+    "lint": "tsc --noEmit",
     "typecheck": "tsc --noEmit",
     "test": "tsx src/scripts/test-e2e.ts",
     "test:auth": "tsx src/scripts/test-auth-inprocess.ts"
@@ -35,6 +36,7 @@
     "pino": "^9.6.0",
     "pino-pretty": "^13.0.0",
     "resend": "^4.1.2",
+    "socket.io": "^4.8.4",
     "stripe": "^17.7.0",
     "uuid": "^11.1.0",
     "zod": "^3.24.2"

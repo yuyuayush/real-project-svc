@@ -5,7 +5,8 @@ export interface UserPublicProfile {
   name: string;
   email: string;
   role: UserRole | 'admin' | 'finance_manager' | 'viewer';
-  companyName: string;
+  companyName?: string;
+  phone?: string | number;
   avatarUrl?: string;
 }
 
@@ -15,8 +16,10 @@ export interface IUser {
   email: string;
   passwordHash: string;
   role: UserRole | 'admin' | 'finance_manager' | 'viewer';
-  companyName: string;
+  companyName?: string;
+  phone?: string | number;
   avatarUrl?: string;
+  addresses?: string[];
   createdAt: Date;
   updatedAt: Date;
 }
@@ -32,6 +35,14 @@ export interface SignupInput {
   email: string;
   password: string;
   companyName?: string;
+  phone?: string | number;
+}
+
+export interface UpdateProfileInput {
+  name?: string;
+  phone?: string | number;
+  companyName?: string;
+  avatarUrl?: string;
 }
 
 export interface AuthSessionResponse {
@@ -44,5 +55,6 @@ export interface IUserRepository {
   findByEmail(email: string): Promise<IUser | null>;
   findById(id: string): Promise<IUser | null>;
   create(userData: Omit<IUser, 'id' | 'createdAt' | 'updatedAt'> & { id?: string }): Promise<IUser>;
+  update(id: string, data: Partial<IUser>): Promise<IUser | null>;
   seedDefaultUsers(): Promise<void>;
 }

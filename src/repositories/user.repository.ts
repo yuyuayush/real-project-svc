@@ -32,12 +32,25 @@ export class InMemoryUserRepository implements IUserRepository {
       passwordHash: userData.passwordHash,
       role: userData.role,
       companyName: userData.companyName,
+      phone: userData.phone,
       avatarUrl: userData.avatarUrl,
       createdAt: now,
       updatedAt: now,
     };
     this.users.set(newUser.id, newUser);
     return { ...newUser };
+  }
+
+  async update(id: string, data: Partial<IUser>): Promise<IUser | null> {
+    const user = this.users.get(id);
+    if (!user) return null;
+    const updated: IUser = {
+      ...user,
+      ...data,
+      updatedAt: new Date(),
+    };
+    this.users.set(id, updated);
+    return { ...updated };
   }
 
   async seedDefaultUsers(): Promise<void> {
@@ -106,11 +119,24 @@ export class MongoUserRepository implements IUserRepository {
       passwordHash: userData.passwordHash,
       role: userData.role,
       companyName: userData.companyName,
+      phone: userData.phone,
       avatarUrl: userData.avatarUrl,
       createdAt: now,
       updatedAt: now,
     });
     return doc.toJSON() as unknown as IUser;
+  }
+
+  async update(id: string, data: Partial<IUser>): Promise<IUser | null> {
+    if (!isDatabaseConnected()) {
+      return this.fallbackRepo.update(id, data);
+    }
+    const doc = await UserModel.findOneAndUpdate(
+      { id },
+      { $set: { ...data, updatedAt: new Date() } },
+      { new: true }
+    ).lean();
+    return doc ? (doc as unknown as IUser) : null;
   }
 
   async seedDefaultUsers(): Promise<void> {

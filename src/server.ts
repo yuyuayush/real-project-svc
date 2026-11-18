@@ -1,10 +1,11 @@
-import { Server } from 'http';
+import http, { Server } from 'http';
 import os from 'os';
 import { createApp } from './app.js';
 import { env } from './config/env.js';
 import { logger } from './config/logger.js';
 import { connectDatabase, disconnectDatabase, isDatabaseConnected } from './config/database.js';
 import { userRepository } from './repositories/user.repository.js';
+import { initSocket } from './config/socket.js';
 
 const app = createApp();
 
@@ -15,17 +16,11 @@ async function startServer() {
   await connectDatabase();
   await userRepository.seedDefaultUsers();
 
-  server = app.listen(env.PORT, () => {
-    logger.info(`====================================================`);
-    logger.info(`Payment Gateway Service listening on port ${env.PORT}`);
-    logger.info(`Environment: ${env.NODE_ENV}`);
-    logger.info(`Database: ${isDatabaseConnected() ? 'Connected to MongoDB (Compass)' : 'In-Memory Fallback'}`);
-    logger.info(`Instance Hostname: ${process.env.HOSTNAME || os.hostname()} (PID: ${process.pid})`);
-    logger.info(`Stripe Mode: ${env.isMockStripe ? 'Simulation (Set STRIPE_SECRET_KEY in .env for real gateway)' : 'Connected'}`);
-    logger.info(`Resend Mode: ${env.isMockResend ? 'Simulation (Set RESEND_API_KEY in .env for live email)' : 'Connected'}`);
-    logger.info(`Health & Telemetry: http://localhost:${env.PORT}/health`);
-    logger.info(`Frontend UI: ${env.CLIENT_URL}`);
-    logger.info(`====================================================`);
+  server = http.createServer(app);
+  initSocket(server);
+
+  server.listen(env.PORT, () => {
+    logger.info(`Server running on port ${env.PORT} (${env.NODE_ENV})`);
   });
 }
 

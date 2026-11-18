@@ -172,6 +172,68 @@ async function runDirectAuthTests() {
   }
   console.log('✅ Test 5 Passed: Logout successfully invalidated session and cleared HTTP-only cookie');
 
+  // Test 6: User Registration via POST /signup
+  console.log('\n--- Test 6: Registration via POST /signup ---');
+  const test6 = createMockReqRes({
+    body: {
+      name: 'Sarah Connor',
+      email: `sarah_${Date.now()}@skynet-defence.com`,
+      password: 'securePassword2026',
+      companyName: 'Cyberdyne Systems',
+    },
+  });
+  await new Promise<void>((resolve, reject) => {
+    (AuthController.signup as any)(test6.req, test6.res, (err: any) => {
+      if (err) reject(err);
+      else resolve();
+    });
+    setTimeout(resolve, 50);
+  });
+
+  const regStatusCode = test6.getStatusCode();
+  const regData = test6.getData();
+  const regCookies = test6.getCookiesSet();
+
+  console.log('Status code:', regStatusCode, '(Expected 201)');
+  console.log('Registered user:', regData?.data?.user?.email, `(${regData?.data?.user?.companyName})`);
+  if (regStatusCode !== 201 || !regData?.data?.user || !regCookies[AUTH_COOKIE_NAME]?.options.httpOnly) {
+    throw new Error('Test 6 Failed: Signup did not return 201 or set HTTP-only cookie');
+  }
+  console.log('✅ Test 6 Passed: User registered, profile created and HTTP-only cookie set');
+
+  // Test 7: User Profile Update via PATCH /profile
+  console.log('\n--- Test 7: Profile Update (name, phone, companyName) ---');
+  const signupToken = regCookies[AUTH_COOKIE_NAME]?.val;
+  const test7 = createMockReqRes({
+    cookies: { [AUTH_COOKIE_NAME]: signupToken },
+    body: {
+      name: 'Sarah Connor-Reese',
+      phone: '+1 (555) 234-5678',
+      companyName: 'Tech Resistance Inc',
+    },
+  });
+  await new Promise<void>((resolve, reject) => {
+    (AuthController.updateProfile as any)(test7.req, test7.res, (err: any) => {
+      if (err) reject(err);
+      else resolve();
+    });
+    setTimeout(resolve, 50);
+  });
+
+  const updateStatusCode = test7.getStatusCode();
+  const updateData = test7.getData();
+  console.log('Status code:', updateStatusCode, '(Expected 200)');
+  console.log('Updated user:', updateData?.data?.user);
+  if (
+    updateStatusCode !== 200 ||
+    updateData?.data?.user?.name !== 'Sarah Connor-Reese' ||
+    updateData?.data?.user?.phone !== '+1 (555) 234-5678' ||
+    updateData?.data?.user?.companyName !== 'Tech Resistance Inc'
+  ) {
+    throw new Error('Test 7 Failed: User profile update did not reflect updated fields');
+  }
+  console.log('✅ Test 7 Passed: User profile updated with new name, phone, and companyName');
+
   console.log('\n🎉 ALL CONTROLLER, REPOSITORY & COOKIE TESTS PASSED SUCCESSFULLY! 🚀\n');
 }
 

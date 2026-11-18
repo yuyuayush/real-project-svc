@@ -35,3 +35,21 @@ export class UnauthorizedError extends AppError {
     super(message, 401);
   }
 }
+
+export class ForbiddenError extends AppError {
+  constructor(message: string = 'Forbidden - insufficient permissions') {
+    super(message, 403);
+  }
+}
+
+export class ConflictError extends AppError {
+  constructor(message: string = 'Resource conflict', details?: unknown) {
+    super(message, 409, details);
+  }
+}
+
+export class InternalServerError extends AppError {
+  constructor(message: string = 'Internal server error', details?: unknown) {
+    super(message, 500, details);
+  }
+}

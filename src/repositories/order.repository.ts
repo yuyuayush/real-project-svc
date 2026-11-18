@@ -55,6 +55,16 @@ export class MongoOrderRepository implements IOrderRepository {
     return updated ? (updated as unknown as Order) : null;
   }
 
+  async updateCustomer(id: string, customer: Order['customer']): Promise<Order | null> {
+    const updated = await OrderModel.findOneAndUpdate(
+      { id },
+      { $set: { customer, updatedAt: new Date() } },
+      { new: true, lean: true }
+    );
+
+    return updated ? (updated as unknown as Order) : null;
+  }
+
   async listAll(limit: number = 50): Promise<Order[]> {
     const docs = await OrderModel.find().sort({ createdAt: -1 }).limit(limit).lean();
     return docs as unknown as Order[];

@@ -1,6 +1,12 @@
 import { userRepository } from '../repositories/user.repository.js';
-import { AuthSessionResponse, LoginInput, SignupInput, UserPublicProfile } from '../types/index.js';
-import { BadRequestError, UnauthorizedError } from '../errors/app-error.js';
+import {
+  AuthSessionResponse,
+  LoginInput,
+  SignupInput,
+  UpdateProfileInput,
+  UserPublicProfile,
+} from '../types/index.js';
+import { BadRequestError, NotFoundError, UnauthorizedError } from '../errors/app-error.js';
 import { generateSessionToken, hashPassword, verifyPassword } from '../utils/crypto.js';
 import { logger } from '../config/logger.js';
 
@@ -37,6 +43,7 @@ export class AuthService {
       email: newUser.email,
       role: newUser.role,
       companyName: newUser.companyName,
+      phone: newUser.phone,
       avatarUrl: newUser.avatarUrl,
     };
 
@@ -79,6 +86,7 @@ export class AuthService {
       email: user.email,
       role: user.role,
       companyName: user.companyName,
+      phone: user.phone,
       avatarUrl: user.avatarUrl,
     };
 
@@ -106,6 +114,7 @@ export class AuthService {
             email: demoUser.email,
             role: demoUser.role,
             companyName: demoUser.companyName,
+            phone: demoUser.phone,
             avatarUrl: demoUser.avatarUrl,
           };
         }
@@ -127,7 +136,38 @@ export class AuthService {
       email: user.email,
       role: user.role,
       companyName: user.companyName,
+      phone: user.phone,
       avatarUrl: user.avatarUrl,
+    };
+  }
+
+  async updateProfile(userId: string, input: UpdateProfileInput): Promise<UserPublicProfile> {
+    const existing = await userRepository.findById(userId);
+    if (!existing) {
+      throw new NotFoundError(`User with ID ${userId} not found`);
+    }
+
+    const updated = await userRepository.update(userId, {
+      ...(input.name !== undefined && { name: input.name }),
+      ...(input.phone !== undefined && { phone: input.phone }),
+      ...(input.companyName !== undefined && { companyName: input.companyName }),
+      ...(input.avatarUrl !== undefined && { avatarUrl: input.avatarUrl }),
+    });
+
+    if (!updated) {
+      throw new NotFoundError(`Failed to update profile for user ID ${userId}`);
+    }
+
+    logger.info({ userId, updatedFields: Object.keys(input) }, '👤 User profile updated successfully in database');
+
+    return {
+      id: updated.id,
+      name: updated.name,
+      email: updated.email,
+      role: updated.role,
+      companyName: updated.companyName,
+      phone: updated.phone,
+      avatarUrl: updated.avatarUrl,
     };
   }
 

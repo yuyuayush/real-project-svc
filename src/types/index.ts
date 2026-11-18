@@ -7,3 +7,4 @@ export * from './repository.types.js';
 export * from './validation.types.js';
 export * from './common.types.js';
 export * from './auth.types.js';
+export * from './address.types.js';

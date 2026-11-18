@@ -6,7 +6,7 @@ import os from 'os';
 import webhookRoutes from './routes/webhook.routes.js';
 import apiRouter from './routes/index.js';
 import { requestIdMiddleware } from './middlewares/request-id.js';
-import { errorHandler } from './errors/error-handler.js';
+import { globalErrorHandler, notFoundHandler } from './middlewares/error.middleware.js';
 import { apiRateLimiter } from './middlewares/rate-limiter.js';
 import { env } from './config/env.js';
 import { isDatabaseConnected } from './config/database.js';
@@ -47,7 +47,7 @@ export function createApp(): Express {
       pid: process.pid,
       uptimeSeconds: Math.floor(process.uptime()),
       database: isDatabaseConnected() ? 'connected (mongodb)' : 'in-memory (fallback)',
-      stripeMode: env.isMockStripe ? 'mock/simulation' : 'live/test-gateway',
+      stripeMode: 'live/stripe-gateway',
       resendMode: env.isMockResend ? 'mock/simulation' : 'live/resend-api',
     });
   });
@@ -55,8 +55,11 @@ export function createApp(): Express {
   // 6. Mount Core REST API
   app.use('/api/v1', apiRouter);
 
-  // 7. Global Error Handler Middleware
-  app.use(errorHandler);
+  // 7. Catch Unmatched Routes (404 Not Found)
+  app.use(notFoundHandler);
+
+  // 8. Global Error Handler Middleware
+  app.use(globalErrorHandler);
 
   return app;
 }

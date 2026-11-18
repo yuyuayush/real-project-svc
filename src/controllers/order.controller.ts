@@ -35,4 +35,14 @@ export class OrderController {
       data: orders,
     });
   });
+
+  static updateAddress = asyncHandler(async (req: Request, res: Response): Promise<void> => {
+    const id = Array.isArray(req.params.id) ? req.params.id[0] : req.params.id;
+    const { address, customerName, phone } = req.body;
+    const order = await orderService.updateOrderAddress(id, address, customerName, phone);
+    res.status(200).json({
+      success: true,
+      data: order,
+    });
+  });
 }

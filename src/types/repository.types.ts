@@ -12,5 +12,6 @@ export interface IOrderRepository {
     status: OrderStatus,
     paymentUpdates?: Partial<Order['payment']>
   ): Promise<Order | null>;
+  updateCustomer(id: string, customer: Order['customer']): Promise<Order | null>;
   listAll(limit?: number): Promise<Order[]>;
 }

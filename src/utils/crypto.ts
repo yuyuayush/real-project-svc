@@ -29,10 +29,52 @@ export function verifyPassword(password: string, hash: string): boolean {
 }
 
 /**
- * Generate a cryptographically secure random session token.
+ * Generate a cryptographically secure, signed random session token.
+ * Encodes the userId and timestamp with an HMAC-SHA256 signature.
+ * Prevents session amnesia across dev reloads while maintaining zero external JWT dependencies.
  */
 export function generateSessionToken(userId: string): string {
-  const randomPart = crypto.randomBytes(32).toString('hex');
+  const randomPart = crypto.randomBytes(24).toString('hex');
   const timestamp = Date.now().toString(36);
-  return `pf_sess_${userId.substring(0, 8)}_${timestamp}_${randomPart}`;
+  const payload = `${userId}:${timestamp}:${randomPart}`;
+  const signature = crypto
+    .createHmac('sha256', env.AUTH_SALT)
+    .update(payload)
+    .digest('hex')
+    .slice(0, 32);
+  return `pf_sess_${payload}_${signature}`;
+}
+
+/**
+ * Verify cryptographic signature of a session token and extract userId.
+ */
+export function verifySessionTokenSignature(token: string): { userId: string } | null {
+  if (!token || !token.startsWith('pf_sess_')) return null;
+  const raw = token.slice('pf_sess_'.length);
+  const lastUnderscore = raw.lastIndexOf('_');
+  if (lastUnderscore === -1) return null;
+
+  const payload = raw.slice(0, lastUnderscore);
+  const signature = raw.slice(lastUnderscore + 1);
+
+  const expectedSignature = crypto
+    .createHmac('sha256', env.AUTH_SALT)
+    .update(payload)
+    .digest('hex')
+    .slice(0, 32);
+
+  if (signature.length !== expectedSignature.length) return null;
+
+  try {
+    const isMatch = crypto.timingSafeEqual(
+      Buffer.from(signature),
+      Buffer.from(expectedSignature)
+    );
+    if (!isMatch) return null;
+
+    const [userId] = payload.split(':');
+    return userId ? { userId } : null;
+  } catch {
+    return null;
+  }
 }

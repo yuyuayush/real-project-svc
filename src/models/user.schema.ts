@@ -12,14 +12,16 @@ const UserSchema = new Schema<IUserDocument>(
     email: { type: String, required: true, unique: true, index: true, lowercase: true, trim: true },
     passwordHash: { type: String, required: true },
     name: { type: String, required: true, trim: true },
+    companyName: { type: String, trim: true },
+    phone: { type: Schema.Types.Mixed, sparse: true },
     role: {
       type: String,
       required: true,
       enum: Object.values(UserRole),
       default: UserRole.ADMIN,
     },
-    companyName: { type: String, required: true, default: 'Acme Payments Corp' },
     avatarUrl: { type: String },
+    addresses: [{ type: Schema.Types.ObjectId, ref: 'Address' }],
   },
   {
     timestamps: true,
